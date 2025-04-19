@@ -1,137 +1,265 @@
-# Incept5 Messaging Lib
+# Incept5 Messaging Library
 
-## Description
+[![JitPack](https://jitpack.io/v/incept5/messaging-lib.svg)](https://jitpack.io/#incept5/messaging-lib)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This library provides a set of classes that allow services to communicate via asynchronous messaging.
-It builds on top of the scheduler-lib library that is used for local message dispatching so a scheduled
-jobbing task is
-In the future we can add additional message processors that can export some or all messages out
-to kafka or another broker etc.
+## Overview
 
+The Incept5 Messaging Library provides a robust, flexible system for asynchronous messaging within Quarkus applications. It enables services to communicate via a publish-subscribe pattern, with messages persisted in a database for reliability.
 
-## Usage
+Built on top of the [scheduler-lib](https://github.com/incept5/scheduler-lib), it uses scheduled tasks for local message dispatching. Future versions will support exporting messages to external message brokers like Kafka.
 
-First you need to include the messaging-quarkus library in your project:
+## Features
 
-    implementation("com.github.incept5.messagimg-lib:messaging-quarkus:1.0.X")
+- **Persistent messaging**: All messages are stored in a database for reliability and auditability
+- **Topic-based pub/sub**: Simple API for publishing and subscribing to named topics
+- **Flexible message handling**: Support for both typed and generic message subscribers
+- **Transactional support**: Messages can be published within transactions
+- **Configurable retry policies**: Customize retry behavior for failed message processing
+- **Quarkus integration**: Seamless integration with Quarkus applications
 
-Add scheduler and messaging to flyway locations in application.yaml:
+## Modules
 
-    quarkus:
-      flyway:
-        locations: db/migration,db/scheduler,db/messaging
-
-Also tell scheduler about your schema:
-
-    task:
-      scheduler:
-        schema: ${quarkus.flyway.default-schema}
-
-### Simple Pub/Sub via topic name
-
-And then you can inject the MessagePublisher into your service and use it to send messages:
-
-    @ApplicationScoped
-    class ExampleService(val publisher: MessagePublisher) {
-        
-        @Transactional
-        fun someMethod(msg: String) {
-            publisher.publish("example-topic", ExamplePayload(msg))
-        }
-    }
-
-And then some other component can subscribe to the topic and be notified to do something for each typed payload:
-
-    @ApplicationScoped
-    class ExampleSubscriber : TopicSubscriber<ExamplePayload>("example-topic", ExamplePayload::class) {
-
-        override fun onPayload(payload: ExamplePayload) {
-            // do something with the payload
-        }
-    }
-
-If you want to marshal the payload into a class that is not the same as the original type (payload class) you can just override matchType like:
-
-    @ApplicationScoped
-    class ExampleSubscriber : TopicSubscriber<DifferentPayload>("example-topic", DifferentPayload::class) {
-
-        // original source type was ExamplePayload but we want to marshal the json into a DifferentPayload object instead
-        override fun matchType(message: Message): Boolean {
-            return message.type.contains("ExamplePayload")
-        }
-
-        override fun onPayload(payload: DifferentPayload) {
-            // do something with the payload
-        }
-    }
-
-### More control via Message Subscriber
-
-You can be more flexible about which messages you handle and how they are processed for example
-here we are handling different payload types in different ways on any topic that contains "foobar":
-
-    class ExampleMessageSubscriber : MessageSubscriber {
-        override fun shouldHandleMessage(message: Message): Boolean {
-            // handle all messages for any topic that contains foobar
-            return message.topic.contains("foobar")
-        }
-        override fun onMessage(message: Message) {
-            when (message.type) {
-                "foo" -> {
-                    onFoo(message.getPayloadAs(FooPayload::class))
-                }
-                "bar" -> {
-                    onBar(message.getPayloadAs(BarPayload::class))
-                }
-            }
-        }
-        fun onFoo(fooPayload: FooPayload) {
-            println("foo message received")
-        }
-        fun onBar(barPayload: BarPayload) {
-            println("bar message received")
-        }
-    }
-
-    
-
-# Configuration
-
-By default, the locally dispatched tasks that throw an exception that is marked as retryable will be retried upto 32 times 
-over the course of a week using an exponential back off strategy.  
-You can override this behaviour by adding the following to your application.yaml:
-
-    task:
-      scheduler:
-        tasks:
-          local-message-dispatch-task:
-            on-failure:
-              max-retry: 3
-              retry-interval: PT1M
-              retry-exponent: 1.0
-
-# Modules
-
-This library is made up of the following modules:
+The library consists of the following modules:
 
 ### messaging-core
 
-This module contains the core messaging classes and interfaces including:
+Contains the core messaging classes and interfaces:
 
-- Message - the data class that is used to send messages
-- MessagePublisher - the interface that is used to publish messages to topics
-- TopicSubscriber - the abstract class that is used to subscribe to topics and receive messages
+- `Message`: Data class representing a message with topic, payload, and metadata
+- `MessagePublisher`: Interface for publishing messages to topics
+- `MessageRepository`: Interface for storing and retrieving messages
+- `TopicSubscriber`: Abstract class for subscribing to specific topics with typed payloads
+- `MessageSubscriber`: Interface for more flexible message handling
+- `SqlMessageRepository`: SQL-based implementation of the MessageRepository
 
-It also contains an SQL based implmentation of the MessageRepository interface that is used to store messages in a database.
+### messaging-quarkus
 
-### scheduler-quarkus
+Quarkus integration module that:
 
-This is a quarkus compatible library that will install the messaging services into the CDI context.
-
-Note that you will need to use flyway to install the db-scheduler tables in your database.
+- Provides CDI beans for messaging services
+- Configures database migrations for message tables
+- Integrates with the scheduler-lib for message dispatching
+- Handles transaction management
 
 ### test-quarkus-messaging
 
-This is an example Quarkus app and integration tests that check correct operation of the messaging-quarkus library.
+Example Quarkus application and integration tests demonstrating library usage.
 
+## Installation
+
+### Gradle (Kotlin DSL)
+
+1. Add JitPack repository to your build file:
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven { url = uri("https://jitpack.io") }
+}
+```
+
+2. Add the dependency:
+
+```kotlin
+// For the complete library with Quarkus integration
+implementation("com.github.incept5.messaging-lib:messaging-quarkus:1.0.x")
+
+// Or for just the core functionality
+implementation("com.github.incept5.messaging-lib:messaging-core:1.0.x")
+```
+
+### Maven
+
+1. Add JitPack repository to your pom.xml:
+
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+```
+
+2. Add the dependency:
+
+```xml
+<!-- For the complete library with Quarkus integration -->
+<dependency>
+    <groupId>com.github.incept5.messaging-lib</groupId>
+    <artifactId>messaging-quarkus</artifactId>
+    <version>1.0.x</version>
+</dependency>
+
+<!-- Or for just the core functionality -->
+<dependency>
+    <groupId>com.github.incept5.messaging-lib</groupId>
+    <artifactId>messaging-core</artifactId>
+    <version>1.0.x</version>
+</dependency>
+```
+
+## Setup
+
+### Database Configuration
+
+Add scheduler and messaging to Flyway locations in your `application.yaml`:
+
+```yaml
+quarkus:
+  flyway:
+    locations: db/migration,db/scheduler,db/messaging
+```
+
+Configure the scheduler schema:
+
+```yaml
+task:
+  scheduler:
+    schema: ${quarkus.flyway.default-schema}
+```
+
+## Usage
+
+### Publishing Messages
+
+Inject the `MessagePublisher` into your service and use it to send messages:
+
+```kotlin
+@ApplicationScoped
+class ExampleService(val publisher: MessagePublisher) {
+    
+    @Transactional
+    fun someMethod(msg: String) {
+        publisher.publish("example-topic", ExamplePayload(msg))
+    }
+}
+```
+
+### Simple Topic Subscription
+
+Create a subscriber for a specific topic and payload type:
+
+```kotlin
+@ApplicationScoped
+class ExampleSubscriber : TopicSubscriber<ExamplePayload>("example-topic", ExamplePayload::class) {
+
+    override fun onPayload(payload: ExamplePayload) {
+        // Process the payload
+        logger.info("Received message: ${payload.message}")
+    }
+}
+```
+
+### Custom Payload Mapping
+
+Override `matchType` to handle payloads with a different class than the original:
+
+```kotlin
+@ApplicationScoped
+class ExampleSubscriber : TopicSubscriber<DifferentPayload>("example-topic", DifferentPayload::class) {
+
+    // Original source type was ExamplePayload but we want to marshal the JSON into a DifferentPayload object
+    override fun matchType(message: Message): Boolean {
+        return message.type.contains("ExamplePayload")
+    }
+
+    override fun onPayload(payload: DifferentPayload) {
+        // Process the payload
+    }
+}
+```
+
+### Advanced Message Handling
+
+For more control, implement the `MessageSubscriber` interface:
+
+```kotlin
+@ApplicationScoped
+class ExampleMessageSubscriber : MessageSubscriber {
+    override fun shouldHandleMessage(message: Message): Boolean {
+        // Handle all messages for any topic that contains "foobar"
+        return message.topic.contains("foobar")
+    }
+    
+    override fun onMessage(message: Message) {
+        when (message.type) {
+            "foo" -> {
+                onFoo(message.getPayloadAs(FooPayload::class))
+            }
+            "bar" -> {
+                onBar(message.getPayloadAs(BarPayload::class))
+            }
+        }
+    }
+    
+    private fun onFoo(fooPayload: FooPayload) {
+        logger.info("Foo message received: ${fooPayload.data}")
+    }
+    
+    private fun onBar(barPayload: BarPayload) {
+        logger.info("Bar message received: ${barPayload.info}")
+    }
+}
+```
+
+## Configuration
+
+### Retry Configuration
+
+By default, failed message processing tasks are retried up to 32 times over a week using exponential backoff. Override this behavior in your `application.yaml`:
+
+```yaml
+task:
+  scheduler:
+    tasks:
+      local-message-dispatch-task:
+        on-failure:
+          max-retry: 3              # Maximum number of retries
+          retry-interval: PT1M      # Initial retry interval (1 minute)
+          retry-exponent: 1.0       # Backoff exponent (1.0 = linear)
+```
+
+### Message Expiration
+
+Configure message expiration to automatically clean up processed messages:
+
+```yaml
+task:
+  scheduler:
+    tasks:
+      local-message-expiration-task:
+        cron: "0 0 * * * ?"         # Run hourly
+        params:
+          expiry-days: 30           # Keep messages for 30 days
+```
+
+## Building from Source
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/incept5/messaging-lib.git
+   cd messaging-lib
+   ```
+
+2. Build with Gradle:
+   ```
+   ./gradlew build
+   ```
+
+3. Install to local Maven repository:
+   ```
+   ./gradlew publishToMavenLocal
+   ```
+
+## Requirements
+
+- Java 21 or higher
+- Quarkus 3.x
+- A relational database supported by Flyway
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
 
