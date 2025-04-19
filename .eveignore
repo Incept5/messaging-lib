@@ -1,0 +1,61 @@
+# Binary files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.otf
+*.pdf
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build and dependency directories
+node_modules/
+dist/
+build/
+bin/
+target/
+.next/
+.nuxt/
+.output/
+coverage/
+.nyc_output/
+.cache/
+.parcel-cache/
+.yarn/
+
+# IDE and editor files
+.idea/
+.eve/
+.hldk/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+*.db
+logs/
+
+# Environment and config files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db

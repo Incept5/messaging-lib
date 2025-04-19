@@ -1,0 +1,35 @@
+quarkus:
+  log:
+    # Note: Allow trace logging to be switched on at runtime but don't enable it by default
+    level: INFO
+    min-level: TRACE
+    console:
+      format: "%d{yyyy-MM-dd HH:mm:ss,S} %X{correlationId} %-5p - [%c{3.}] (%t) %s%e%n"
+
+    category:
+      "org.incept5":
+        level: DEBUG
+      "com.github.kagkarlsson.scheduler":
+        level: DEBUG
+
+  datasource:
+    # h2
+    db-kind: postgresql
+
+  flyway:
+    default-schema: example
+    migrate-at-start: true
+    locations: db/migration,incept5/scheduler,incept5/messaging
+
+task:
+  scheduler:
+
+    schema: ${quarkus.flyway.default-schema}
+    polling-interval: PT1S
+
+    tasks:
+
+      # change the retry on local messages to 1s for testing
+      local-message-dispatch-task:
+        on-incomplete:
+          retry-interval: PT1S

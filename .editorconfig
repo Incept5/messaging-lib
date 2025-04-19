@@ -1,0 +1,39 @@
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = false
+max_line_length = 180
+tab_width = 4
+ij_continuation_indent_size = 8
+ij_formatter_off_tag = @formatter:off
+ij_formatter_on_tag = @formatter:on
+ij_formatter_tags_enabled = true
+ij_smart_tabs = false
+ij_visual_guides = none
+ij_wrap_on_typing = false
+
+[*.{kt,kts}]
+# The default changed from `intelij_idea` to `ktlint_official` since the 1.0 release of ktlint, 
+# so here we change it back to make our live easier.
+ktlint_code_style = intellij_idea 
+
+# KTLint Standard Rule Overrides - see https://github.com/JLLeitschuh/ktlint-gradle
+# These are annoying and we don't want to be annoyed
+ktlint_standard_no-multi-spaces = disabled
+ktlint_standard_no-empty-first-line-in-class-body = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+ktlint_standard_no-blank-line-before-rbrace = disabled
+ktlint_standard_no-trailing-spaces = disabled
+ktlint_standard_final-newline = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_no-empty-first-line-in-method-block = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_discouraged-comment-location = disabled
+
+[*.{yaml,yml}]
+indent_size = 2
+tab_width = 2
