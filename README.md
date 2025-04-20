@@ -109,7 +109,7 @@ Add scheduler and messaging to Flyway locations in your `application.yaml`:
 ```yaml
 quarkus:
   flyway:
-    locations: db/migration,db/scheduler,db/messaging
+    locations: db/migration, incept5/scheduler, incept5/messaging
 ```
 
 Configure the scheduler schema:
