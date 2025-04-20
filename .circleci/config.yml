@@ -5,10 +5,22 @@ orbs:
 
 jobs:
   build-and-test:
-    docker:
-      - image: cimg/openjdk:21.0
+    machine:
+      image: ubuntu-2204:current
     steps:
       - checkout
+      - run:
+          name: Install JDK 21
+          command: |
+            sudo apt-get update -y
+            sudo apt-get install -y openjdk-21-jdk
+            java -version
+      - run:
+          name: Ensure Docker is running
+          command: |
+            docker --version
+            docker info
+            docker ps
       - gradle/with_cache:
           steps:
             - run:
@@ -21,10 +33,22 @@ jobs:
           destination: reports
 
   publish-to-jitpack:
-    docker:
-      - image: cimg/openjdk:21.0
+    machine:
+      image: ubuntu-2204:current
     steps:
       - checkout
+      - run:
+          name: Install JDK 21
+          command: |
+            sudo apt-get update -y
+            sudo apt-get install -y openjdk-21-jdk
+            java -version
+      - run:
+          name: Ensure Docker is running
+          command: |
+            docker --version
+            docker info
+            docker ps
       - run:
           name: Set Build Number
           command: |
@@ -74,25 +98,24 @@ jobs:
             echo "All artifacts in Maven repository:"
             find $HOME/.m2/repository/com/github/incept5 -type f -name "*.jar" | sort
             
-            # Verify that both JARs exist locally
             if [ ! -f "$HOME/.m2/repository/com/github/incept5/messaging-core/${VERSION}/messaging-core-${VERSION}.jar" ]; then
               echo "messaging: messaging-core JAR not found locally at expected path"
               echo "Expected: $HOME/.m2/repository/com/github/incept5/messaging-core/${VERSION}/messaging-core-${VERSION}.jar"
-              
+            
               # Check if the directory exists
               if [ -d "$HOME/.m2/repository/com/github/incept5/messaging-core" ]; then
                 echo "Available versions for messaging-core:"
                 ls -la "$HOME/.m2/repository/com/github/incept5/messaging-core/"
               fi
-              
+            
               # Try to find it elsewhere
               echo "Searching for messaging-core JAR:"
               find $HOME/.m2/repository -name "messaging-core-*.jar" | sort
-              
+            
               # Try one more publish with explicit version
               echo "Attempting one more publish with explicit version ${VERSION}"
               ./gradlew :messaging-core:clean :messaging-core:build :messaging-core:publishToMavenLocal -Pversion=${VERSION} --stacktrace
-              
+            
               # Check again
               if [ -f "$HOME/.m2/repository/com/github/incept5/messaging-core/${VERSION}/messaging-core-${VERSION}.jar" ]; then
                 echo "Successfully published messaging-core JAR after retry"
@@ -105,21 +128,21 @@ jobs:
             if [ ! -f "$HOME/.m2/repository/com/github/incept5/messaging-quarkus/${VERSION}/messaging-quarkus-${VERSION}.jar" ]; then
               echo "messaging: messaging-quarkus JAR not found locally at expected path"
               echo "Expected: $HOME/.m2/repository/com/github/incept5/messaging-quarkus/${VERSION}/messaging-quarkus-${VERSION}.jar"
-              
+            
               # Check if the directory exists
               if [ -d "$HOME/.m2/repository/com/github/incept5/messaging-quarkus" ]; then
                 echo "Available versions for messaging-quarkus:"
                 ls -la "$HOME/.m2/repository/com/github/incept5/messaging-quarkus/"
               fi
-              
+            
               # Try to find it elsewhere
               echo "Searching for messaging-quarkus JAR:"
               find $HOME/.m2/repository -name "messaging-quarkus-*.jar" | sort
-              
+            
               # Try one more publish with explicit version
               echo "Attempting one more publish with explicit version ${VERSION}"
               ./gradlew :messaging-quarkus:clean :messaging-quarkus:build :messaging-quarkus:publishToMavenLocal -Pversion=${VERSION} --stacktrace
-              
+            
               # Check again
               if [ -f "$HOME/.m2/repository/com/github/incept5/messaging-quarkus/${VERSION}/messaging-quarkus-${VERSION}.jar" ]; then
                 echo "Successfully published messaging-quarkus JAR after retry"
