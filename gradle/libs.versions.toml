@@ -4,10 +4,10 @@
 [versions]
 
 # Incept5 Libraries
-json-lib = "1.0.6"
-correlation = "1.0.12"
-error-lib = "1.0.24"
-scheduler-lib = "1.0.20"
+json-lib = "1.0.10"
+correlation = "1.0.20"
+error-lib = "1.0.26"
+scheduler-lib = "1.0.22"
 
 # 3pp dependency versions
 hsqldb = "2.7.4"
