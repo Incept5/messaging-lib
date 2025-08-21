@@ -128,7 +128,7 @@ task:
   scheduler:
     tasks:
       local-message-dispatch-task:
-        onIncomplete:
+        on-incomplete:
           retryInterval: PT30S     # Initial retry interval (30 seconds)
           retryExponent: 2.0       # Backoff multiplier (double each time)
           maxRetries: 10           # Maximum retry attempts
@@ -142,7 +142,7 @@ task:
   scheduler:
     tasks:
       local-message-dispatch-task:
-        onIncomplete:
+        on-incomplete:
           retryInterval: PT5S      # Start with 5 seconds
           retryExponent: 1.5       # Moderate backoff
           maxRetries: 8            # Retry for ~15 minutes total
@@ -154,7 +154,7 @@ task:
   scheduler:
     tasks:
       local-message-dispatch-task:
-        onIncomplete:
+        on-incomplete:
           retryInterval: PT5M      # Start with 5 minutes
           retryExponent: 1.2       # Gentle backoff
           maxRetries: 50           # Retry for several days
@@ -166,7 +166,7 @@ task:
   scheduler:
     tasks:
       local-message-dispatch-task:
-        onIncomplete:
+        on-incomplete:
           retryInterval: PT1M      # 1 minute intervals
           retryExponent: 1.0       # No backoff (linear)
           maxRetries: 60           # Retry for 1 hour
