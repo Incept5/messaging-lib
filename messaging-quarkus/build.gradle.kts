@@ -26,6 +26,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     runtimeOnly(libs.incept5.scheduler.quarkus)
+
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testRuntimeOnly(libs.slf4j.simple) // slf4j backend
 }
 publishing {
     publications {

@@ -3,11 +3,13 @@
  */
 package org.incept5.messaging
 
+import org.incept5.json.Json
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -111,6 +113,48 @@ class MessageTest {
         assertEquals("complex", kClassPayload.name)
     }
     
+    @Test
+    fun testDeliveryAttemptDefaultsToOne() {
+        val message = Message(topic = "topic", payload = ExamplePayload("foo", 42))
+        assertEquals(1, message.deliveryAttempt)
+    }
+
+    @Test
+    fun testDeliveryAttemptIsExcludedFromEquality() {
+        // deliveryAttempt is identity-irrelevant runtime metadata: two otherwise-identical
+        // messages must remain equal (and hash equally) regardless of attempt, so callers can
+        // safely compare/deduplicate Message objects.
+        val messageId = UUID.randomUUID()
+        val createdAt = Instant.now()
+        fun build(attempt: Int) = Message(
+            topic = "t",
+            payloadJson = "{\"name\":\"foo\",\"age\":42}",
+            type = ExamplePayload::class.java.name,
+            messageId = messageId,
+            createdAt = createdAt,
+            correlationId = "corr",
+            traceId = "trace",
+            replyTo = null,
+        ).apply { deliveryAttempt = attempt }
+
+        assertEquals(build(1), build(4))
+        assertEquals(build(1).hashCode(), build(4).hashCode())
+    }
+
+    @Test
+    fun testDeliveryAttemptIsNotSerialized() {
+        // deliveryAttempt is a transient runtime hint and must be excluded from Message JSON
+        // (e.g. trace logging) via @get:JsonIgnore.
+        val message = Message(topic = "topic", payload = ExamplePayload("foo", 42))
+        message.deliveryAttempt = 4
+
+        val json = Json.toJson(message)
+        assertFalse(json.contains("deliveryAttempt"), "deliveryAttempt leaked into JSON: $json")
+
+        // The payload JSON itself is built from the payload only and is unaffected.
+        assertEquals("{\"name\":\"foo\",\"age\":42}", message.payloadJson)
+    }
+
     @Test
     fun testStringPayload() {
         val stringPayload = "Simple string payload"

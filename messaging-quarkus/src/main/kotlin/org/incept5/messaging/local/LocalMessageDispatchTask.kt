@@ -50,14 +50,22 @@ class LocalMessageDispatchTask(
     }
 
     /**
-     * Fetch the message from the db and dispatch it to the local subscribers
+     * Required override of the abstract NamedJobbingTask.accept(payload). Normal dispatch does
+     * not flow through here: this class overrides apply() and calls the private accept overload
+     * with the real delivery attempt. This entry point is the framework default and stamps the
+     * original-delivery value (1); it is retained to satisfy the contract / direct invocation.
      */
-    override fun accept(messageId: UUID) {
+    override fun accept(payload: UUID) {
+        accept(payload, 1)
+    }
+
+    private fun accept(messageId: UUID, deliveryAttempt: Int) {
         val message = messageFinder.findByMessageId(messageId)
         if (message == null) {
             logger.warn ("Message Not Found : {}", messageId)
             return
         } else {
+            message.deliveryAttempt = deliveryAttempt
             dispatcher.dispatchMessageToSubscribers(message)
         }
     }
@@ -69,7 +77,20 @@ class LocalMessageDispatchTask(
     @Transactional
     override fun apply(context: TaskContext<UUID>): TaskConclusion {
         try {
-            accept(context.payload)
+            // repeatCount is the canonical redelivery counter for this task. Why repeatCount and
+            // not failureCount:
+            //  - Retryable failures re-schedule the task as INCOMPLETE (via setRollbackOnly),
+            //    which the scheduler tracks by incrementing repeatCount.
+            //  - Non-retryable failures are re-thrown and, with onFailure() empty, are TERMINAL:
+            //    the task fails permanently and is never re-dispatched. They bump failureCount
+            //    (the scheduler's consecutiveFailures), but there is no subsequent attempt to
+            //    observe it on.
+            // Each execution ends in exactly one of {COMPLETE, INCOMPLETE, thrown}, so the two
+            // counters never both move for the same attempt, and only INCOMPLETE produces a
+            // redelivery. failureCount is therefore always 0 at dispatch time and a mixed
+            // retryable/non-retryable sequence cannot yield a later attempt. repeatCount + 1 is
+            // the exact delivery attempt number (0 redeliveries => attempt 1).
+            accept(context.payload, context.repeatCount + 1)
         } catch (e: Exception) {
             if (e.isRetryable()) {
                 logger.warn("Retryable Exception - Will Rollback and Retry : {}", context.payload, e)

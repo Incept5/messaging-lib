@@ -21,6 +21,8 @@ maven-settings = "0.5"
 dependency-analysis = "1.29.0"
 quarkus = "3.21.1"
 slf4j = "2.0.9"
+mockito = "5.10.0"
+mockito-kotlin = "5.2.1"
 
 [libraries]
 
@@ -53,6 +55,10 @@ quarkus-bom = { module = "io.quarkus:quarkus-bom", version.ref = "quarkus" }
 quarkus-rest-jackson = {module = "io.quarkus:quarkus-rest-jackson", version.ref = "quarkus" }
 
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+
+# mockito (test only)
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 
 [plugins]
 
