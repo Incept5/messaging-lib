@@ -16,6 +16,17 @@ abstract class TopicSubscriber<P : Any>(private val topicName: String, private v
     abstract fun onPayload(payload: P)
 
     /**
+     * Override this instead of [onPayload] when you need to know which delivery attempt
+     * this is (e.g. to flag stuck messages on a redelivery). deliveryAttempt counts the
+     * original delivery as 1, so the "3rd redelivery" is deliveryAttempt == 4.
+     *
+     * Defaults to delegating to [onPayload] so existing subscribers are unaffected.
+     */
+    open fun onPayload(payload: P, deliveryAttempt: Int) {
+        onPayload(payload)
+    }
+
+    /**
      * By default we match on topic name equality
      */
     fun topicMatches(topic: String): Boolean {
@@ -35,7 +46,7 @@ abstract class TopicSubscriber<P : Any>(private val topicName: String, private v
 
     override fun onMessage(message: Message) {
         if (shouldHandleMessage(message)) {
-            onPayload(message.getPayloadAs(payloadClass))
+            onPayload(message.getPayloadAs(payloadClass), message.deliveryAttempt)
         }
     }
 

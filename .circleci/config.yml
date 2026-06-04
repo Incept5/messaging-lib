@@ -3,24 +3,55 @@ version: 2.1
 orbs:
   gradle: circleci/gradle@3.0.0
 
-jobs:
-  build-and-test:
+# Shared machine executor that points Quarkus at the Postgres started by the
+# start-postgres command. Providing an explicit JDBC URL disables Quarkus Dev
+# Services, so the integration tests don't depend on the testcontainers
+# docker-java client (whose bundled API 1.32 is rejected by the CI daemon's 1.40
+# minimum). The Docker CLI itself works fine, so we provision Postgres directly.
+executors:
+  machine-with-postgres:
     machine:
       image: ubuntu-2204:current
+    environment:
+      QUARKUS_DATASOURCE_DB_KIND: postgresql
+      QUARKUS_DATASOURCE_USERNAME: quarkus
+      QUARKUS_DATASOURCE_PASSWORD: quarkus  # ephemeral test-only container, not a real credential
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://localhost:5432/quarkus
+
+commands:
+  install-jdk-21:
     steps:
-      - checkout
       - run:
           name: Install JDK 21
           command: |
             sudo apt-get update -y
             sudo apt-get install -y openjdk-21-jdk
             java -version
+  start-postgres:
+    steps:
       - run:
-          name: Ensure Docker is running
+          name: Start PostgreSQL
           command: |
-            docker --version
-            docker info
-            docker ps
+            docker run -d --name postgres -p 5432:5432 \
+              -e POSTGRES_USER=quarkus \
+              -e POSTGRES_PASSWORD=quarkus \
+              -e POSTGRES_DB=quarkus \
+              postgres:16
+            echo "Waiting for PostgreSQL to be ready..."
+            for i in $(seq 1 30); do
+              if docker exec postgres pg_isready -U quarkus -d quarkus >/dev/null 2>&1; then
+                echo "PostgreSQL is ready"; break
+              fi
+              sleep 2
+            done
+
+jobs:
+  build-and-test:
+    executor: machine-with-postgres
+    steps:
+      - checkout
+      - install-jdk-21
+      - start-postgres
       - gradle/with_cache:
           steps:
             - run:
@@ -33,22 +64,11 @@ jobs:
           destination: reports
 
   publish-to-maven:
-    machine:
-      image: ubuntu-2204:current
+    executor: machine-with-postgres
     steps:
       - checkout
-      - run:
-          name: Install JDK 21
-          command: |
-            sudo apt-get update -y
-            sudo apt-get install -y openjdk-21-jdk
-            java -version
-      - run:
-          name: Ensure Docker is running
-          command: |
-            docker --version
-            docker info
-            docker ps
+      - install-jdk-21
+      - start-postgres
       - run:
           name: Set Version Based on Branch
           command: |

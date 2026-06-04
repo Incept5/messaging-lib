@@ -69,6 +69,45 @@ class TopicSubscriberTest {
     }
     
     @Test
+    fun testOnPayloadReceivesDeliveryAttempt() {
+        val subscriber = DeliveryAttemptTrackingSubscriber("test-topic")
+
+        // 3rd redelivery == deliveryAttempt 4
+        val message = Message(topic = "test-topic", payload = TestPayload("test-data"))
+        message.deliveryAttempt = 4
+
+        subscriber.onMessage(message)
+
+        assertEquals(1, subscriber.receivedAttempts.size)
+        assertEquals(4, subscriber.receivedAttempts.first())
+        assertEquals("test-data", subscriber.lastProcessedPayload?.data)
+    }
+
+    @Test
+    fun testDeliveryAttemptDefaultsToOneWhenNotStamped() {
+        val subscriber = DeliveryAttemptTrackingSubscriber("test-topic")
+
+        // A freshly constructed message defaults to attempt 1 (original delivery)
+        val message = Message(topic = "test-topic", payload = TestPayload("test-data"))
+
+        subscriber.onMessage(message)
+
+        assertEquals(listOf(1), subscriber.receivedAttempts)
+    }
+
+    @Test
+    fun testLegacySubscriberStillReceivesPayloadRegardlessOfAttempt() {
+        // A subscriber that only overrides onPayload(P) must keep working unchanged
+        val subscriber = TestTopicSubscriber("test-topic")
+        val message = Message(topic = "test-topic", payload = TestPayload("test-data"))
+        message.deliveryAttempt = 4
+
+        subscriber.onMessage(message)
+
+        assertEquals("test-data", subscriber.lastProcessedPayload?.data)
+    }
+
+    @Test
     fun testCustomTopicMatching() {
         val subscriber = CustomMatchingSubscriber()
         
@@ -97,6 +136,24 @@ class TestTopicSubscriber(topicName: String) : TopicSubscriber<TestPayload>(topi
     
     override fun onPayload(payload: TestPayload) {
         lastProcessedPayload = payload
+    }
+}
+
+/**
+ * Overrides the delivery-attempt-aware overload to record which attempt each dispatch reports.
+ */
+class DeliveryAttemptTrackingSubscriber(topicName: String) : TopicSubscriber<TestPayload>(topicName, TestPayload::class) {
+    var lastProcessedPayload: TestPayload? = null
+    val receivedAttempts = mutableListOf<Int>()
+
+    override fun onPayload(payload: TestPayload) {
+        // Should not be called directly when the two-arg overload is overridden
+        throw AssertionError("single-arg onPayload should not be invoked")
+    }
+
+    override fun onPayload(payload: TestPayload, deliveryAttempt: Int) {
+        lastProcessedPayload = payload
+        receivedAttempts.add(deliveryAttempt)
     }
 }
 

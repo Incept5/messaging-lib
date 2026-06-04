@@ -29,6 +29,30 @@ data class Message(
 )  {
 
     /**
+     * Which delivery attempt this dispatch represents, counting the original delivery as 1.
+     *
+     *   1 = original delivery
+     *   2 = 1st redelivery
+     *   3 = 2nd redelivery
+     *   N = (N-1)th redelivery
+     *
+     * So the "3rd redelivery" is deliveryAttempt == 4.
+     *
+     * This is a transient, runtime-only hint stamped by the dispatcher from the scheduler's
+     * redelivery (repeat) count, and read by subscribers. It is `var` only so the dispatcher can
+     * set it; subscribers should treat it as read-only. It is NOT persisted in the `messages`
+     * table and is excluded from JSON serialization; messages reconstructed from the DB carry
+     * the default value of 1.
+     *
+     * Declared in the class body rather than as a constructor parameter so it is excluded from
+     * the data class's generated equals()/hashCode()/copy(): two messages that differ only in
+     * deliveryAttempt remain equal (it is identity-irrelevant runtime metadata).
+     */
+    // @get: targets the getter so Jackson's Kotlin module honours @JsonIgnore during serialization.
+    @get:JsonIgnore
+    var deliveryAttempt: Int = 1
+
+    /**
      * Convenience constructor for creating a message with a payload that is a String.
      */
     constructor(topic: String, payload: Any) : this(
