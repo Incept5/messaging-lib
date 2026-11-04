@@ -1,0 +1,4 @@
+# JitPack otherwise picks the minimum JDK for the Gradle wrapper (17 for Gradle 9.4), and the
+# build compiles with release 21 (build.gradle.kts), which JDK 17 can't do.
+jdk:
+  - openjdk21
