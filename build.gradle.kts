@@ -34,19 +34,16 @@ plugins {
     `maven-publish`
 }
 
-// Apply a specific Java toolchain to ease working on different environments.
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
+// Build with whichever JDK runs Gradle (21 or 25), but emit Java 21 bytecode
+// so the library still runs on JDK 21+ consumers.
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
 }
 
-// Configure Kotlin to target JVM 21
 kotlin {
-    jvmToolchain(21)
-
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.add("-Xjdk-release=21")
     }
 }
 
@@ -67,11 +64,15 @@ subprojects {
         withSourcesJar()
     }
 
-    // Configure Kotlin to target JVM 21
+    // Build with whichever JDK runs Gradle, emitting Java 21 bytecode (as above)
+    tasks.withType<JavaCompile>().configureEach {
+        options.release.set(21)
+    }
+
     kotlin {
-        jvmToolchain(21)
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            freeCompilerArgs.add("-Xjdk-release=21")
         }
     }
 
